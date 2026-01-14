@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Typing Game – Exam Mode</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<style>
+body{
+ font-family:Arial;
+ background:#f4f6f8;
+ display:flex;
+ justify-content:center;
+ align-items:center;
+ min-height:100vh;
+ margin:0;
+}
+.container{
+ background:#fff;
+ width:95%;
+ max-width:900px;
+ padding:20px;
+ border-radius:10px;
+ box-shadow:0 4px 15px rgba(0,0,0,.15);
+}
+h2{text-align:center}
+
+.paragraph{
+ background:#eef;
+ padding:15px;
+ border-radius:6px;
+ line-height:1.6;
+ margin-bottom:10px;
+}
+.correct{color:green}
+.incorrect{color:red;text-decoration:underline}
+
+textarea{
+ width:100%;
+ height:140px;
+ font-size:16px;
+ padding:10px;
+ box-sizing:border-box;
+}
+
+.stats{
+ display:grid;
+ grid-template-columns:repeat(auto-fit,minmax(120px,1fr));
+ gap:10px;
+ margin-top:10px;
+}
+
+.controls{
+ display:flex;
+ gap:10px;
+ flex-wrap:wrap;
+ margin-bottom:10px;
+}
+
+button,select{
+ padding:8px;
+ font-size:15px;
+ cursor:pointer;
+}
+
+.level{
+ font-weight:bold;
+ margin-bottom:5px;
+}
+</style>
+</head>
+
+<body>
+<div class="container">
+<h2>⌨️ Typing Game (Exam Mode)</h2>
+
+<div class="controls">
+<select id="examMode">
+ <option value="off">Practice Mode</option>
+ <option value="on">Exam Mode</option>
+</select>
+
+<select id="examTime">
+ <option value="60">1 Minute</option>
+ <option value="180">3 Minutes</option>
+ <option value="300">5 Minutes</option>
+</select>
+
+<!-- 🔹 NEW: LEVEL SELECTION -->
+<select id="levelSelect">
+ <option value="easy">Easy</option>
+ <option value="medium">Medium</option>
+ <option value="hard">Hard</option>
+</select>
+
+<button onclick="startGame()">Start</button>
+<button onclick="restart()">Restart</button>
+</div>
+
+<div class="level">Level: <span id="level">Easy</span></div>
+
+<div class="paragraph" id="paragraph"></div>
+
+<textarea id="input" placeholder="Start typing here..."></textarea>
+
+<div class="stats">
+ <div>⏱ Time: <span id="time">0</span>s</div>
+ <div>⚡ WPM: <span id="wpm">0</span></div>
+ <div>🎯 Accuracy: <span id="accuracy">0</span>%</div>
+</div>
+</div>
+
+<script>
+// -------- LONG PARAGRAPHS ----------
+const paragraphs={
+ easy:`Typing is a basic yet important skill that helps people work faster and communicate more effectively. 
+With regular practice, users can improve their speed, accuracy, and confidence while using a keyboard. 
+Developing a steady typing rhythm reduces mistakes and makes everyday digital tasks easier and more efficient.`,
+
+ medium:`Typing is an essential digital skill in today’s technology-driven world, where productivity and communication 
+depend heavily on computers. Professionals and students must maintain both speed and accuracy while working 
+on documents, emails, and reports. Consistent typing practice improves muscle memory, reduces errors, and 
+enhances overall efficiency during long working sessions.`,
+
+ hard:`In modern academic and professional environments, advanced typing proficiency is a critical requirement. 
+Individuals are expected to produce structured documents, technical reports, and analytical content under 
+strict time constraints. Achieving high typing performance requires sustained concentration, strong muscle 
+memory, ergonomic discipline, and the ability to maintain accuracy during extended typing sessions.`
+};
+
+let level="easy";
+let text="";
+let startTime=null;
+let timer=null;
+let examTimer=null;
+let finished=false;
+
+// -------- ELEMENTS ----------
+const para=document.getElementById("paragraph");
+const input=document.getElementById("input");
+const levelSelect=document.getElementById("levelSelect");
+
+// -------- START GAME ----------
+function startGame(){
+ restart();
+
+ level=levelSelect.value; // 🔹 manual level
+ text=paragraphs[level];
+
+ para.innerHTML=text.split("").map(c=>`<span>${c}</span>`).join("");
+ document.getElementById("level").innerText=level.toUpperCase();
+ input.focus();
+
+ startTime=new Date();
+ timer=setInterval(updateTime,1000);
+
+ if(examMode.value==="on"){
+  let remaining=parseInt(examTime.value);
+  time.innerText=remaining;
+  examTimer=setInterval(()=>{
+   remaining--;
+   time.innerText=remaining;
+   if(remaining<=0){
+    endExam();
+   }
+  },1000);
+ }
+}
+
+// -------- TIME ----------
+function updateTime(){
+ if(examMode.value==="off"){
+  time.innerText=Math.floor((new Date()-startTime)/1000);
+ }
+}
+
+// -------- TYPING ----------
+input.addEventListener("input",()=>{
+ if(!startTime||finished) return;
+
+ const val=input.value;
+ const spans=para.querySelectorAll("span");
+ let correct=0;
+
+ spans.forEach((s,i)=>{
+  if(val[i]==null) s.className="";
+  else if(val[i]===s.innerText){
+   s.className="correct"; correct++;
+  }else s.className="incorrect";
+ });
+
+ const minutes=(new Date()-startTime)/60000;
+ const wpmVal=Math.floor(val.split(" ").length/minutes||0);
+ const accVal=((correct/val.length)*100||0).toFixed(0);
+
+ wpm.innerText=wpmVal;
+ accuracy.innerText=accVal;
+
+ if(val===text){
+  finished=true;
+  clearAll();
+  showResult(wpmVal,accVal);
+ }
+});
+
+// -------- END EXAM ----------
+function endExam(){
+ finished=true;
+ clearAll();
+ showResult(wpm.innerText,accuracy.innerText);
+}
+
+// -------- GRADE ----------
+function getGrade(wpm,acc){
+ if(wpm>=50 && acc>=90) return "A";
+ if(wpm>=35 && acc>=80) return "B";
+ if(wpm>=25 && acc>=65) return "C";
+ return "Fail";
+}
+
+// -------- RESULT ----------
+function showResult(wpm,acc){
+ const grade=getGrade(wpm,acc);
+ alert(
+  `RESULT\n\nLevel: ${level.toUpperCase()}\nWPM: ${wpm}\nAccuracy: ${acc}%\nGrade: ${grade}`
+ );
+}
+
+// -------- RESET ----------
+function clearAll(){
+ clearInterval(timer);
+ clearInterval(examTimer);
+}
+
+function restart(){
+ input.value="";
+ time.innerText=0;
+ wpm.innerText=0;
+ accuracy.innerText=0;
+ clearAll();
+ startTime=null;
+ finished=false;
+}
+
+// -------- LOAD DEFAULT ----------
+para.innerHTML=paragraphs[level].split("").map(c=>`<span>${c}</span>`).join("");
+</script>
+</body>
+</html>
