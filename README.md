@@ -1,1 +1,1 @@
-# typing-game
+typing game
